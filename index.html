@@ -1,0 +1,903 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>CineFX - Fun Camera Effects</title>
+ <link href="css/index.css" rel="stylesheet"/>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black">
+<meta name="apple-mobile-web-app-title" content="CineFX Web">
+<link rel="shortcut icon" href="images/favicon.ico" type="image/x-icon">
+ <link href="css/index.css" rel="stylesheet"/>
+<link rel="apple-touch-icon" href="images/apple-touch-icon-iphone-60x60.png">
+<link rel="apple-touch-icon" sizes="60x60" href="images/apple-touch-icon-ipad-76x76.png">
+<link rel="apple-touch-icon" sizes="114x114" href="images/apple-touch-icon-iphone-retina-120x120.png">
+<link rel="apple-touch-icon" sizes="144x144" href="images/apple-touch-icon-ipad-retina-152x152.png">
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="favicon.ico" type="image/x-icon" />
+<link rel="shortcut icon" href="images/favicon.ico" type="image/x-icon">
+<script type="text/javascript" src="glMatrix-0.9.5.min.js"></script>
+<script type="text/javascript" src="webgl-utils.js"></script>
+<script type="text/javascript" src="main.js"></script>
+
+<script id="shader-1-fs" type="f">
+    precision mediump float;
+    varying vec2 vTextureCoord;
+    uniform sampler2D texture0;
+    uniform vec2 resolution;
+    uniform vec2 mouse;
+    uniform int index;
+    uniform float time;
+    uniform float Param1;
+    uniform float Param2;
+    uniform float Param3;
+    const mediump float Tau	= 6.2832;
+    void main(void) {
+ 	mediump vec2 xy = 1.0-gl_FragCoord.xy / resolution;
+	mediump vec4 tx = texture2D(texture0, xy);
+	float p3 = Param3;
+
+	if (index == 0)
+    { // box stretch
+         mediump vec2 normCoord = 2.0 * xy - 1.0;
+	     mediump vec2 normCenter = vec2(sin(-time*0.7), sin(time)) / 10.;
+
+	     normCoord -= normCenter;
+	     mediump vec2 s = sign(normCoord);
+	     normCoord = abs(normCoord);
+	     normCoord = 0.5 * normCoord + 0.5 * smoothstep(0.25, 0.5, normCoord) * normCoord;
+	     normCoord = s * normCoord;
+
+	     normCoord += normCenter;
+
+	     xy = normCoord / 2.0 + 0.5;
+    	 gl_FragColor = texture2D(texture0, xy);
+    }
+
+    if (index == 1)
+    { // stretch vertical
+	     mediump vec2 normCoord = 2.0 * xy - 1.0;
+	     mediump vec2 normCenter = 2.0 * vec2(0.5,0.5 + (cos(time*.23) - sin(time*0.27))/5.) - 1.0;
+
+	     normCoord -= normCenter;
+	     mediump vec2 s = sign(normCoord);
+	     normCoord = abs(normCoord);
+	     normCoord = 0.5 * normCoord + 0.5 * smoothstep(0.25, 0.5, normCoord) * normCoord;
+	     normCoord = s * normCoord;
+
+	     normCoord += normCenter;
+
+	     xy.y = normCoord.y / 2.0 + 0.5;
+
+    	gl_FragColor = texture2D(texture0, xy);
+    }
+    else if (index == 2)
+    { // bulge up and down
+        lowp float aspectRatio = resolution.x/resolution.y;
+     	lowp float radius = 0.3;
+     	lowp float scale = 0.4;
+     	lowp vec2 cent = vec2(0.5, 0.5 + cos(time*.23)/3. - sin(time*0.27) / 3.);
+        mediump vec2 textureCoordinateToUse = vec2(xy.x, (xy.y * aspectRatio + cent.y - cent.y * aspectRatio));
+    	mediump float dist = distance(cent, textureCoordinateToUse);
+    	textureCoordinateToUse = xy;
+
+    	if (dist < radius)
+    	{
+        	textureCoordinateToUse -= cent;
+        	mediump float percent = 1.0 - ((radius - dist) / radius) * scale;
+        	percent = percent * percent;
+
+        	textureCoordinateToUse = textureCoordinateToUse * percent;
+        	textureCoordinateToUse += cent;
+        	xy = textureCoordinateToUse;
+    	}
+     gl_FragColor = texture2D(texture0, xy);
+
+    }
+    else if (index == 3)
+    { // bulge moving
+        lowp float aspectRatio = resolution.x/resolution.y;
+     	lowp float radius = 0.2;
+     	lowp float scale = 0.3;
+     	lowp vec2 cent = vec2(0.5 + cos(time*.8)/8. - sin(time*0.7) / 8., 0.5 - sin(time*0.68) / 8.);
+        mediump vec2 textureCoordinateToUse = vec2(xy.x, (xy.y * aspectRatio + cent.y - cent.y * aspectRatio));
+    	lowp float dist = distance(cent, textureCoordinateToUse);
+    	textureCoordinateToUse = xy;
+
+    	if (dist < radius)
+    	{
+        	textureCoordinateToUse -= cent;
+        	lowp float percent = 1.0 - ((radius - dist) / radius) * scale;
+        	percent = percent * percent;
+
+        	textureCoordinateToUse = textureCoordinateToUse * percent;
+        	textureCoordinateToUse += cent;
+        	xy = textureCoordinateToUse;
+    	}
+
+    	cent = vec2(0.5 + cos(-time*.34)/6. - sin(time*0.32) / 7., 0.5 - sin(-time*0.38) / 8.);
+        textureCoordinateToUse = vec2(xy.x, (xy.y * aspectRatio + cent.y - cent.y * aspectRatio));
+    	dist = distance(cent, textureCoordinateToUse);
+    	textureCoordinateToUse = xy;
+
+    	if (dist < radius)
+    	{
+        	textureCoordinateToUse -= cent;
+          	mediump float p = 1.0 - ((radius - dist) / radius) * scale * .75;
+        	p = p * p;
+
+        	textureCoordinateToUse = textureCoordinateToUse * p;
+        	textureCoordinateToUse += cent;
+        	xy = textureCoordinateToUse;
+
+       	}
+    	cent = vec2(0.5 - cos(-time*.25)/6. - sin(-time*0.43) / 7., 0.5 + sin(-time*0.62) / 8.);
+        textureCoordinateToUse = vec2(xy.x, (xy.y * aspectRatio + cent.y - cent.y * aspectRatio));
+    	dist = distance(cent, textureCoordinateToUse);
+    	textureCoordinateToUse = xy;
+
+    	if (dist < radius)
+    	{
+        	textureCoordinateToUse -= cent;
+          	mediump float p = 1.0 - ((radius - dist) / radius) * scale * .81;
+        	p = p * p;
+
+        	textureCoordinateToUse = textureCoordinateToUse * p;
+        	textureCoordinateToUse += cent;
+        	xy = textureCoordinateToUse;
+
+       	}
+     gl_FragColor = texture2D(texture0, xy);
+
+    }
+    else if (index == 4)
+    { // pinch
+	     mediump float aspectRatio = resolution.x/resolution.y;
+	     mediump float radius = 0.5;
+	     lowp vec2 cent = vec2(0.5, 0.5 + cos(time*.8)/6. + sin(time*0.7) / 4.);
+
+	     mediump vec2 textureCoordinateToUse = vec2(xy.x, (xy.y * aspectRatio + 0.5 - 0.5 * aspectRatio));
+	     mediump float dist = distance(cent, textureCoordinateToUse);
+	     textureCoordinateToUse = xy;
+
+	     if (dist < radius)
+	     {
+	         textureCoordinateToUse -= cent;
+	         mediump float percent = 1.0 + ((0.5 - dist) / 0.5) * 1.0;
+	         textureCoordinateToUse = textureCoordinateToUse * percent;
+	         textureCoordinateToUse += cent;
+	         xy = textureCoordinateToUse;
+	     }
+	     gl_FragColor = texture2D(texture0, xy);
+    }
+    else if (index == 5)
+	{ // swirl
+		mediump float radius = 0.5;
+		mediump float angle = (sin(time*.37)) / 3.;
+		mediump vec2 textureCoordinateToUse = xy;
+		mediump vec2 cent = vec2(0.5 + sin(time) / 8., 0.5 + cos(time)/8.);
+		mediump float dist = distance(cent, xy);
+		if (dist < radius)
+		{
+			textureCoordinateToUse -= cent;
+			mediump float percent = (radius - dist) / radius;
+			mediump float theta = percent * percent * angle * 8.0;
+			mediump float s = sin(theta);
+			mediump float c = cos(theta);
+			textureCoordinateToUse = vec2(dot(textureCoordinateToUse, vec2(c, -s)), dot(textureCoordinateToUse, vec2(s, c)));
+			textureCoordinateToUse += cent;
+		}
+		gl_FragColor = texture2D(texture0, textureCoordinateToUse);
+	}
+	else if (index == 6)
+    { // wavey image vertical
+	    xy.y +=  sin((1.0-xy.x) * 15.*sin(time))/ 12.;
+	    gl_FragColor = texture2D(texture0, xy);
+    }
+    else if (index == 7)
+    { // transluscent glass effect
+	    xy.y += sin(xy.y*sin(time/53.)*100.)/ 15.;
+	    xy.x += sin(xy.x*cos(time/67.)*100.)/ 15.;
+	    gl_FragColor = texture2D(texture0, xy);
+    }
+    else if (index == 8)
+    { // wavey image horizontal
+	    xy.x += sin(xy.y*time)/ 20.;
+	   	tx = texture2D(texture0, xy);
+	    gl_FragColor = tx; //vec4(tx.zyx, 1.0);
+    }
+
+    }
+</script>
+
+<script id="shader-2-fs" type="f">
+precision mediump float;
+varying vec2 vTextureCoord;
+uniform sampler2D texture0;
+uniform vec2 resolution;
+uniform vec2 mouse;
+uniform int index;
+uniform float time;
+uniform float Param1;
+uniform float Param2;
+uniform float Param3;
+const float Tau	= 6.2832;
+
+float snoise(vec3 uv, float res)
+{
+	const vec3 s = vec3(1e0, 1e2, 1e4);
+
+	uv *= res;
+
+	vec3 uv0 = floor(mod(uv, res))*s;
+	vec3 uv1 = floor(mod(uv+vec3(1.), res))*s;
+
+	vec3 f = fract(uv);
+	f = f*f*(3.0-2.0*f);
+
+	vec4 v = vec4(uv0.x+uv0.y+uv0.z, uv1.x+uv0.y+uv0.z,
+		      uv0.x+uv1.y+uv0.z, uv1.x+uv1.y+uv0.z);
+
+	vec4 r = fract(sin(v*1e-3)*1e5);
+	float r0 = mix(mix(r.x, r.y, f.x), mix(r.z, r.w, f.x), f.y);
+
+	r = fract(sin((v + uv1.z - uv0.z)*1e-3)*1e5);
+	float r1 = mix(mix(r.x, r.y, f.x), mix(r.z, r.w, f.x), f.y);
+
+	return mix(r0, r1, f.z)*2.-1.;
+}
+
+
+vec2 noise(vec2 n)
+{
+	vec2 ret;
+	ret.x=fract(sin(dot(n.xy, vec2(12.9898, 78.233)))* 43758.5453)*2.0-1.0;
+	ret.y=fract(sin(dot(n.xy, vec2(34.9865, 65.946)))* 28618.3756)*2.0-1.0;
+	return normalize(ret);
+}
+
+float perlin(vec2 p)
+{
+	vec2 q=floor(p);
+	vec2 r=fract(p);
+	float rt;
+	float s=dot(noise(q),p-q);
+	float t=dot(noise(vec2(q.x+1.0,q.y)),p-vec2(q.x+1.0,q.y));
+	float u=dot(noise(vec2(q.x,q.y+1.0)),p-vec2(q.x,q.y+1.0));
+	float v=dot(noise(vec2(q.x+1.0,q.y+1.0)),p-vec2(q.x+1.0,q.y+1.0));
+	rt = r.x*r.x;
+	float Sx=3.0*rt-2.0*(rt*r.x);
+	float a=s+Sx*(t-s);
+	float b=u+Sx*(v-u);
+	rt = r.y*r.y;
+	float Sy=3.0*rt-2.0*(rt*r.y);
+	return  a+Sy*(b-a);
+}
+
+float fbm(vec2 p)
+{
+	float f=0.0;
+	float tme=-time;
+	f+=perlin(p-time);
+	f+=perlin(p*4.0+time)*0.25;
+	return f;
+}
+
+const float NUM_BUBBLES = 10.0;
+lowp vec4 doBubble(vec2 coord,  float bubble)
+{
+	mediump float mtime = time * 500.0 + bubble * 1000.0;
+	lowp vec4 result = vec4(0.0,0.0,0.0,1.0);
+	lowp vec3 position = vec3(cos( mtime / (500.0 + bubble * 5.0) ) * 0.2 + mod( bubble / 10.0, 1.0 ) / 10.0 - sin( bubble * 370.0 )*resolution.x/resolution.y,- mod( ( mtime /  2000.0 * (cos(bubble*3.0)+2.0) ), 3.0 + bubble / 100.0) + 1.0, 0);
+	lowp float radius = 0.05 * ( cos( bubble * 3.0) + 1.0 ) + 0.05;
+	lowp vec3 color = vec3( -0.1, -0.1, -0.1 );
+	mediump float l = length( vec3(coord,0.0) - position );
+	if ( l < radius  ){
+		mediump vec3 shading = ( vec3( coord, 0.0 ) - position ) / radius;
+		shading.z = 1.0 - length( shading );
+		mediump float intensity = dot( shading, vec3( -0.707, 0.707, 0.4 ) );
+		if ( intensity < 0.0 ) intensity *= -1.5;
+		color *= intensity + 1.0;
+		color += pow( intensity, 3.0 );
+		if (l > radius * 0.95){
+			color *= 1.0 - ( l - radius * 0.95 ) / ( radius * 0.05);
+		}
+		result = vec4( color, 1.0 );
+	} else {
+		mediump vec3 streak = vec3( coord, 0.0 ) - position + vec3( -0.707, 0.707, 0.0 ) * radius * 5.0;
+		mediump float value = dot( normalize(streak), vec3( -0.707, 0.707, 0.0 ) ) ;
+		mediump float l = length( streak );
+		mediump float amount = max( 0.0, value * pow( 10.0 / l*radius, 2.0 ) );
+		if(value > 0.98 && l > radius * 5.0){
+			amount *= min( 1.0, ( value - 0.98 ) / 0.02 * 5.0);
+			color = vec3( -0.01, -0.01, -0.01 ) * amount;
+			color *= ( bubble + 1.0 ) / NUM_BUBBLES * 0.8 + 0.2;
+			result = vec4( color, 1.0 );
+		}
+	}
+	return result;
+}
+
+const float LAYERS = 4.0;
+const float SPEED = 0.0005;
+const float SCALE = 1000.0;
+const float DENSITY	= 0.9;
+const float BRIGHTNESS = 10.0;
+const float TWIST = 0.04;
+const vec3  PALETTE	= vec3(1.0, 1.0, 1.0);
+mediump float rand(vec2 co){ return fract(sin(dot(co.xy ,vec2(12.9898,78.233))) * 43758.5453); }
+
+void main(void) {
+	mediump vec2 xy = 1.0-gl_FragCoord.xy / resolution;
+	mediump vec4 tx = texture2D(texture0, xy);
+//	gl_FragColor =  vec4(tx.xyz, 1.0);
+//	return;
+	if (index == 0) { // bubbles
+    mediump vec2 cPos = -0.8 + 2.0 * xy;
+		mediump float cLength = length(cPos);
+		mediump float i = clamp(cos(cLength*12.0-time*4.0)/4. + 1.75,0.0,1.0);
+		mediump vec2 uv = xy+(cPos/cLength)*cos(cLength*12.0-time*4.0)*0.012;
+		mediump vec3 col = texture2D(texture0,uv).xyz * vec3(i);
+
+		mediump vec4 result = vec4(col,1.0); //vec4(0.0);// 0.69, 0.89, 0.99, 1.0 );
+		mediump vec2 coord = (xy-0.5)*vec2(2.0*resolution.y/resolution.x,2.0);
+		//coord.y=1.0-coord.y;
+		for( mediump float i = 0.0; i < NUM_BUBBLES; i += 1.0 ){
+			result += doBubble( coord.xy,  i );
+		}
+		gl_FragColor = result;
+    }
+
+    else if (index == 1) { // rippling water
+    	mediump vec2 cPos = -0.8 + 2.0 * xy;
+		mediump float cLength = length(cPos);
+		mediump float i = clamp(cos(cLength*12.0-time*4.0)/4. + 1.75,0.0,1.0);
+		mediump vec2 uv = xy+(cPos/cLength)*cos(cLength*12.0-time*4.0)*0.012;
+		mediump vec3 col = texture2D(texture0,uv).xyz * vec3(i);
+
+		gl_FragColor = vec4(col,1.0);
+	}
+
+	if (index == 2)	{
+		mediump vec2 position = ( gl_FragCoord.xy / resolution ) - vec2(0.0, 0.5);
+		highp float waves = sin(position.x*10.0)*0.02*sin(time*10.0)   +  sin(position.x*10.0+1.3)*0.015*sin(time*10.0+10.5);
+		mediump float color = 0.0;
+		waves -= 0.5 - 0.7;
+
+		if (position.y < waves)	{
+		 	color = (waves-position.y)*20.0;
+			color = min(pow(color,0.5),1.0);
+			mediump vec4 colour = vec4( position.y < waves ? mix(vec3(0.59,0.63,0.86),vec3(0.19,0.24,0.51),color) : vec3(0,0,0), 1.0 );
+			gl_FragColor = vec4((colour.x*4.+tx.x)/5., (colour.y+tx.y)/2., (colour.z+tx.z)/2.0, 1.0);
+		}
+		else
+			gl_FragColor = tx; //vec4(tx, 1.0);
+	}
+
+	else if (index == 3) { // fire
+	    mediump float col = 0.0;
+	    if (xy.y > 0.5)
+	    {
+			vec2 p=(gl_FragCoord.xy/resolution.y)*10.0;
+			p.y-=resolution.x/resolution.y*1.5;
+			p.x+=1.5;
+			float dist,fx;
+
+		 	col=-p.y/2.0+fbm(p);
+		}
+		else
+			col = 0.0;
+
+		if (col < 0.1)
+			gl_FragColor = vec4(tx.x*1.8, tx.y, tx.z, 1.0);
+		else
+			gl_FragColor = vec4(col*4.0,col*2.0,col,1.0);
+	}
+
+	else if (index == 4) { // flaming star
+	    vec2 p = xy - vec2(0.45,0.5);
+
+		float color = 3.5 - (3.*length(2.*p));
+
+		vec3 coord = vec3(atan(p.x,p.y)/Tau+.5, length(p)*.4, .5);
+
+		for(int i = 1; i <= 2; i++)
+		{
+			float power = pow(2.0, float(i));
+			color += (1.5 / power) * snoise(coord + vec3(0.,-time*.05, time*.01), power*16.);
+		}
+
+		float blend = clamp(1.0-length(p)*3., 0.0, 1.0);
+		vec3 tx3 = vec3( color, pow(max(color,0.),2.)*0.4, pow(max(color,0.),3.)*0.15);
+		tx3 = clamp(tx3, 0.0, 1.0);
+		tx.x *= 1.8;
+		gl_FragColor = vec4(tx.xyz * blend + tx3 * length(p), 1.0);
+	}
+	else if (index == 5) { // snow
+		highp vec2 pos = gl_FragCoord.xy - vec2(resolution.x*2.0,resolution.y);;
+		pos.x = 1.0 - pos.x;
+		mediump float dist = length(pos) / resolution.y;
+		mediump vec2 coord = vec2(pow(dist, 0.1), 1.0-atan(pos.y, pos.x) / Tau);
+		mediump vec3 color = vec3(0.0);
+		for (float i = 0.0; i < LAYERS; ++i)
+		{
+			mediump float t = i*10.0 + time*i*i;
+			mediump float r = coord.y - (t*SPEED);
+			mediump float c = fract(sin(time*.1+i)*TWIST + xy.x + i*.125);
+			mediump vec2  p = vec2(r, c*.5);
+			mediump vec2 uv = fract(p*SCALE);
+			mediump float a = 1.0-length(uv*2.0-1.0);
+			mediump vec3  m = fract(r*SCALE * PALETTE)+i*.2;
+			mediump float d = (rand(floor(p*SCALE))-DENSITY)*BRIGHTNESS;
+			d = clamp(d*dist, 0.0, 1.0);
+			color = max(color, a*m*d);
+		}
+		tx.z *= 1.8;
+		tx.x *= 0.7;
+		gl_FragColor =  vec4(tx.xyz + color, 1.0);
+	}
+		else if (index == 6) { // rain
+		highp vec2 pos = gl_FragCoord.xy - vec2(resolution.x*2.0,resolution.y);;
+		pos.x = 1.0 - pos.x;
+		mediump float dist = length(pos) / resolution.y;
+		mediump vec2 coord = vec2(pow(dist, 0.1), 1.0-atan(pos.y, pos.x) / Tau);
+		mediump vec3 color = vec3(0.0);
+		for (float i = 4.0; i < 5.0; ++i)
+		{
+			mediump float t = i*10.0 + time*i*i;
+			mediump float r = coord.y - (t*SPEED*4.0);
+			mediump float c = fract(xy.x + i*.125);
+			mediump vec2  p = vec2(r, c*.5);
+			mediump vec2 uv = fract(p*SCALE*1.5);
+			mediump float a = 1.0-length(uv*2.0-1.0);
+			mediump vec3  m = fract(r*SCALE*1.5 * PALETTE)+i*.2;
+			mediump float d = (rand(floor(p*SCALE*1.5))-0.97)*BRIGHTNESS;
+			d = clamp(d*dist, 0.0, 1.0);
+			color = max(color, a*m*d)/2.0;
+		}
+		tx.z *= 1.4;
+		tx.x *= 0.8;
+		gl_FragColor =  vec4(tx.xyz + color, 1.0);
+	}
+}
+</script>
+
+<script id="shader-3-fs" type="f">
+    precision mediump float;
+    varying vec2 vTextureCoord;
+    uniform sampler2D texture0;
+    uniform vec2 resolution;
+    uniform vec2 mouse;
+    uniform int index;
+    uniform float time;
+    uniform float Param1;
+    uniform float Param2;
+    uniform float Param3;
+
+const float Tau		= 6.2832;
+const float speed	= .02;
+const float density	= .04;
+const float shape	= .04;
+const float PI = 3.14159;
+vec2 point = vec2(0, 0);
+
+float rand2( const in vec2 v )
+{
+	float value = fract( sin(time + v.x * 1014.43572) * 31344.234 + sin(time + v.y * 3442.43572) * 543.234);
+
+	return value;
+}
+
+vec3 blob(vec2 p, float x, vec3 color) {
+	float stime = -time * .3 * x;
+	vec2 pos = vec2(cos(stime),sin(stime));
+	return color * 0.15/(distance(p, pos));
+}
+
+float random( vec2 seed ) {
+	return fract(sin(seed.x+seed.y*1e3)*1e5);
+}
+
+float Cell(vec2 coord) {
+	vec2 cell = fract(coord) * vec2(.5,2.) - vec2(.0,.5);
+	return (1.-length(cell*2.-1.))*step(random(floor(coord)),density)*2.;
+}
+
+
+vec3 spirala(vec2 position) {
+  float d = 20.0*log(0.02 + distance(position, vec2(0.5, 0.5)) );
+  //float fala = pow(sin(time - d), 2.0);
+  float fala = -0.5*pow(sin(13.4*time- d*0.2)+1.0, 0.25); // falowanie
+  float faza0 = atan(position.x-0.5, position.y-0.5);
+  float faza = 0.0;
+  float color = 1.0+sin(2.0*faza  + d + fala - time*10.0);
+  color = color*color;
+  return vec3(color, sin(d + 10.0*faza0)*color, cos(d + faza0)*color);
+}
+
+vec3 hsv2rgb(float h,float s,float v)
+{
+	return mix(vec3(1.),clamp((abs(fract(h+vec3(3.,2.,1.)/3.)*6.-3.)-1.),0.,1.),s)*v;
+}
+
+vec3 arc(vec4 btrir,float ang,vec2 p,vec3 color)
+{
+	vec2 c = resolution.yx/2.;
+
+	float d = distance(p,vec2(c))*.7;
+
+	float a = atan(p.x-c.x,p.y-c.y)+PI+ang;
+
+	a = mod(a,Tau);
+
+	if(a > btrir.x && a < btrir.y && d > btrir.z && d < btrir.w)
+	{
+		float diff = d-btrir.z;
+		float rtrn = smoothstep(0.0,1.0,pow(sin(diff/16.*PI),0.25));
+
+		float eb = 4.0;
+		if(a < btrir.x+(PI/eb))
+		{
+			float ad = (btrir.x+(PI/eb))-a;
+			rtrn *= 1.0-ad/(PI/eb);
+		}
+
+		if(a > btrir.y-(PI/eb))
+		{
+			float ad = a - (btrir.y-(PI/eb));
+			rtrn *= 1.0-ad/(PI/eb);
+		}
+		return color*rtrn;
+	}
+
+	return vec3(0.0);
+}
+
+    void main(void) {
+	lowp vec2 xy = 1.0-gl_FragCoord.xy / resolution;
+	lowp vec4 tx = texture2D(texture0, xy);
+	vec3 col = clamp(vec3(1.0 - distance(xy, vec2(0.5, 0.5)) / 0.4),0.,1.);
+	col = clamp(col, 0.0, 1.0);
+
+	if (index == 0)
+	{
+		col = vec3(1.2 - distance(xy, vec2(0.5, 0.5)) / 0.5);
+		col = clamp(col, 0.0, 1.0);
+		vec2 p = gl_FragCoord.xy;
+
+		vec3 color = vec3(0.0);
+
+		for(float i = 15.0;i < 22.0;i++)
+		{
+			float j = i-2.0;
+			color += arc(vec4((0.0),(PI),j*16.0,(j+1.0)*16.0),time*4.0/(((fract(j*0.3)-.5)*2.0)*8.0),p, hsv2rgb(i/28.0,1.0,1.0));
+		}
+	    if (length(color) < 0.1)
+	    {
+	    	float d = distance(xy, vec2(0.5, 0.5)) * 30.;
+	    	if (mod(d, 3.0) > 2.0)
+	    		color = vec3(tx.x, 0.0, tx.z) * col;
+	    	else if (mod(d, 3.0) > 1.0)
+	    		color = vec3(0.0, tx.y, tx.z) * col;
+	    	else
+	    		color = vec3(tx.x, tx.y, 0.0) * col;
+	    }
+		gl_FragColor = vec4(vec3(color),1.0);
+	}
+
+	else if (index == 1)
+	{
+	    float sum = 0.0;
+	    float size = resolution.x + resolution.y;
+	    float g = 1.3;
+	    int num = 20;
+	    float w = resolution.x * 0.45;
+	    float h = resolution.y * 0.45;
+	    float t = time / 3.0;
+	    for (int i = 0; i < 15; ++i) {
+	        vec2 position = resolution / 2.0;
+	        position.x += sin(t + float(i)) * w;
+	        position.y += cos(t + (1.0 + sin(time/30.0) * 0.03) * float(i)) * h;
+
+	        float dist = length(gl_FragCoord.xy - position);
+
+	        sum += size / pow(dist, g);
+	    }
+
+	    vec3 color = vec3(0,0,0);
+	    float val = sum / float(num);
+	    if (val > 1.5)
+	    {
+	    	if (val < 2.0)
+	    		color = vec3(0.0, val*0.3, val*0.6);
+	    	else
+	    		color = tx.xyz; //vec3(0.0);
+	    }
+	    if (length(color) < 0.2)
+	    	color = tx.xyz*col;
+
+	    gl_FragColor = vec4(color, 1.0);
+	}
+    else if (index == 2)
+    { // rotating wheel
+	  	float aspect = 1.0;//height / width;
+		vec2 unipos = xy;
+		vec2 bipos = unipos*2.0-1.0;
+		bipos.x *= aspect;
+
+		float angle = atan(bipos.x, bipos.y);
+
+		float scale = 0.1;
+
+		float dis = (1.0 - length(bipos)) * scale;
+
+		float cogMin = 0.01 - 0.01 * abs(sin(-time)); // 'min' is actually the outer edge because I'm using 1/distance... for reasons I can't remember :(
+		float cogMax = 0.03; // 'max' is the inner edge, so this controls the size of the hole in the middle - the higher the value the smaller the hole
+
+		// tooth adjust makes the teeth slope so they get smaller as they get further out
+		//float toothAdjust = 2.4 * (distance - cogMin);
+		// 12 defines the number of cog teeth
+		//float angleFoo = sin(angle*24.0 - time * 4.0);// - toothAdjust;
+		//cogMin += 1.5 * clamp(1.0 * (angleFoo + 0.5), 0.0, 0.01); // add 0.2 to make teeth a bit thinner, the 0.015 clamp controls the thickness of the cog ring
+
+		// By multiplying values up and clamping we can get a solid cog with slight anti-aliasing
+		float isSolid = clamp(2.0 * (dis - cogMin) / cogMax, 0.0, 1.0);
+		isSolid = clamp(isSolid * 80.0 * (cogMax - dis), 0.0, 1.0);
+
+
+		float hue = 0.7;
+		float sat = 0.6;
+		float lum = isSolid * length(bipos*0.25)*8.0;
+
+		col = vec3(1.0 - distance(xy, vec2(0.5, 0.5)) / 0.5) * (1.2 - 0.9 * abs(sin(time/2.0)));
+		col = clamp(col, 0.0, 1.0);
+
+		vec3 rgb = hsv2rgb(hue, sat, lum);
+		gl_FragColor = vec4(rgb + col*tx.xyz, 1.0);
+
+   	}
+	else if (index == 3)
+	{
+		vec2 p = (xy - vec2(0.5,0.5))  * 2.5;
+		vec3 color = vec3(0.0);
+
+		for(float i = 3.; i < 8.; i++)
+		{
+			color += blob(p, i, vec3(cos(i/8.), exp(-i), sin(i/8.)));
+		}
+		color /= 3.0;
+		if (length(color) < 0.5)
+			color = tx.xyz*col;
+
+		gl_FragColor = vec4((col*tx.xyz+color)/2., 1.0);
+	}
+
+	else if (index  == 4)
+	{ // diamond lens
+		vec2 p = xy - vec2(0.5, 0.5);
+		float d = (abs(p.x)+abs(p.y))*15.0;
+		vec3 c;
+
+		d += time*4.0;
+
+		if ((abs(p.x) + abs(p.y)) > 0.5)
+			c = vec3(sin(abs(d)*2.0+0.8), sin(abs(d*4.5)+0.3), sin(abs(d*3.2)+0.5));
+		else
+			c = tx.xyz;
+		gl_FragColor = vec4(c, 1.0);
+
+	}
+	else if (index == 5)
+	{ // multicoloured circles into centre
+		vec2 p1 = xy - vec2(0.5,0.5);
+
+		vec2 p = (xy - 0.5) * abs(sin(time/10.0)) * 50.0;
+		if (length(p1) > 0.3)
+		{
+			float d = sin(length(p)+time), a = sin(mod(atan(p.y, p.x) + time + sin(d+time), 3.1416/3.)*3.), v = a + d, m = sin(length(p)*4.0-a+time);
+			vec3 c = vec3(-v*sin(m*sin(-d)+time*.1), v*m*sin(tan(sin(-a))*sin(-a*3.)*3.+time*.5), mod(v,m));
+			gl_FragColor = vec4(tx.xyz * col + c * length(p1), 1.0);
+		}
+		else
+			gl_FragColor = vec4(tx.xyz * col, 1.0);
+	}
+	else if (index == 6)
+	{ // moving cirles
+		vec2 position = xy; //( gl_FragCoord.xy / resolution.xy ); //- (mouse-vec2(0.5, 0.5));
+		vec3 c1 = vec3(0.0);
+		if (length(position - 0.5) > 0.3)
+		{
+	   		c1 = spirala(position + 0.05*vec2(sin(-4.0*time), cos(4.0*time)));
+	   		gl_FragColor = vec4( (c1)/(4.0), 1.0 );
+		}
+		else
+			gl_FragColor = vec4(tx.xyz * col, 1.0);
+	}
+
+    }
+</script>
+
+<script id="shader-4-fs" type="f">
+    precision mediump float;
+    varying vec2 vTextureCoord;
+    uniform sampler2D texture0;
+    uniform vec2 resolution;
+    uniform vec2 mouse;
+    uniform int index;
+    uniform float time;
+    uniform float Param1;
+    uniform float Param2;
+    uniform float Param3;
+
+const float Tau		= 6.2832;
+const float speed	= .02;
+const float density	= .04;
+const float shape	= .04;
+
+
+vec3 hsv(float h,float s,float v) {
+	return mix(vec3(1.),clamp((abs(fract(h+vec3(3.,2.,1.)/3.)*6.-3.)-1.),0.,1.),s)*v;
+}
+
+
+vec2 rotate(vec2 p, float ang){
+    float c = cos(ang), s = sin(ang);
+    return vec2(p.y * c - p.x * s, p.y * s + p.x * c);
+}
+
+vec2 zoom(vec2 p, float factor){
+    return vec2(p.x * factor, p.y * factor);
+}
+
+float rainbow(float x)
+{
+	x=fract(0.16666 * abs(x));
+	if(x>.5) x = 1.0-x;
+	if(x<.16666) return 0.0;
+	if(x<.33333) return 6.0 * x-1.0;
+	return 1.0;
+}
+
+    void main(void) {
+    	lowp vec2 xy = 1.0-gl_FragCoord.xy / resolution;
+	lowp vec4 tx = texture2D(texture0, xy);
+	vec3 tx3 = vec3(tx.x, tx.y, tx.z);
+
+	if (index == 0)
+	{ // hippy
+	   float x = gl_FragCoord.x;
+	   float y = gl_FragCoord.y;
+	   float mov0 = x+y+cos(sin(time)*2.)*50.+sin(x/100.)*1000.;
+	   float mov1 = y / resolution.y / 0.20 + time;
+	   float mov2 = x / resolution.x / 0.2;
+	   float c1 = abs(sin(mov1+time)/2.+mov2/2.-mov1-mov2+time);
+	   float c2 = abs(sin(c1+sin(mov0/100.+time)+sin(y/10.+time)*0.2+sin((x+y)/100.)*3.));
+	   float c3 = abs(sin(c2+cos(mov1+mov2+c2)+cos(mov2)+sin(x/1000.)));
+	   gl_FragColor = vec4( c1-tx.x,c2-tx.y,c3-tx.z,1.0);
+	}
+    if (index == 1)
+    {
+		tx3 = floor((tx3 * 2.0) + vec3(0.5)) / 2.0; // posterise image
+		vec2 p = 2.0 * gl_FragCoord.xy / resolution - 1.0;
+
+		float r = 0.75 + sin( p.x ) * ( cos( 5.0  * p.x + time ) + sin( 7.0 * p.y - time ) + sin( time ) );
+		float g = 0.25 + sin( p.y ) * ( cos( 3.0  * p.y + time ) + sin( 9.0 * p.x - time ) - cos( time ) );
+		float b = 0.75 + sin( p.x ) * ( cos( 11.0 * p.x + time ) + sin( 3.0 * p.y + time ) + cos( time ) );
+
+		vec3 color = vec3( r, g, b);
+		gl_FragColor = vec4(tx3.xxx*.1+color, 1.0);
+    }
+
+	else if (index == 2)
+	{ // hippy
+		tx3 = vec3((tx.x+tx3.y+tx3.z)/3.);
+		tx3 = floor((tx3 * 4.0) + vec3(0.5)) / 4.0; // posterise image
+
+		vec2 p = xy; //( gl_FragCoord.xy / resolution.xy );
+		p -= vec2(0.5);
+		p.x *= resolution.y / resolution.x;
+
+		vec2 p2 = p;
+
+		p *= sin(time) + 2.0;
+		p.x += sin(time * 1.0);
+		p.y += sin(time * 1.101);
+
+		p2 *= sin(time) + 2.1;
+		p2.x += sin(time * 1.1);
+		p2.y += sin(time * 1.111);
+
+		float x = 2.0 + fract(length(p*.5))*6.0;
+		float x2 = 2.0 + fract(length(p2*.5))*6.0;
+
+		float r = -(clamp(x-3.0,0.0,1.0)+clamp(-x+1.0,0.0,1.0))+1.0 -(clamp(x-9.0,0.0,1.0)+clamp(-x+7.0,0.0,1.0))+1.0;
+		float g = -(clamp(x-5.0,0.0,1.0)+clamp(-x+3.0,0.0,1.0))+1.0;
+		float b = -(clamp(x-7.0,0.0,1.0)+clamp(-x+5.0,0.0,1.0))+1.0;
+
+		float r2 = -(clamp(x2-3.0,0.0,1.0)+clamp(-x2+1.0,0.0,1.0))+1.0 -(clamp(x2-9.0,0.0,1.0)+clamp(-x2+7.0,0.0,1.0))+1.0;
+		float g2 = -(clamp(x2-5.0,0.0,1.0)+clamp(-x2+3.0,0.0,1.0))+1.0;
+		float b2 = -(clamp(x2-7.0,0.0,1.0)+clamp(-x2+5.0,0.0,1.0))+1.0;
+
+		vec3 col = vec3( 0.5 * vec3( r+r2, g+g2 , b+b2));
+		gl_FragColor = vec4(col + tx3*.2, 1.0);
+	}
+	else if (index == 3)
+	{ // hippy
+		tx3 = floor((tx3 * 3.0) + vec3(0.5)) / 3.0; // posterise image
+		float value = sin(1.0-distance(xy,vec2(sin(atan(xy.y, xy.x)+time/3.0),sin(time/2.0+atan(time, xy.y)-length(xy))))*22.0+time*4.0)*.3+.3;
+		//gl_FragColor = vec4(value-tx3.x, value-tx3.y, (1.0-value)-tx3.z,1.0 );
+		gl_FragColor = vec4(hsv(value+xy.x*xy.y, 1.0, 1.0)+tx3.xzx/2.0, 1.0 ); // both work with different colours
+	}
+	else if (index == 4)
+	{ // hippy with box blur
+	    float x = 1.0/resolution.x;
+    	float y = 1.0/resolution.y;
+		vec2 firstOffset = vec2(1.5 * x, 1.5 * y);
+     	vec2 secondOffset = vec2(3.5 * x, 3.5 * y);
+
+		tx *= 0.2;
+	    tx += texture2D(texture0, xy + firstOffset) * 0.2;
+	    tx += texture2D(texture0, xy - firstOffset) * 0.2;
+	    tx += texture2D(texture0, xy + secondOffset) * 0.2;
+	    tx += texture2D(texture0, xy - secondOffset) * 0.2;
+
+		//tx3 = floor((tx3 * 3.0) + vec3(0.5)) / 3.0; // posterise image
+		float value = sin(1.0-distance(xy,vec2(sin(atan(xy.y, xy.x)+time/2.0),sin(time/2.0+atan(time, xy.y)-length(xy))))*32.0+time*8.0)*.3+.3;
+
+		gl_FragColor = clamp(vec4(hsv(value+xy.x*xy.y, 1.0, 1.0)*tx.xyz, 1.0 ), 0.0, 1.0);
+	}
+	else if (index == 5)
+	{ // hippy
+		tx3 = floor((tx3 * 2.0) + vec3(0.5)) / 2.0; // posterise image
+		vec2 pos = -0.5 + ( xy ) * 5.1;// *mouse.x;
+		float v = sin(pos.x+pos.y)+cos(pos.y*(1.0+pos.x)+sin(time/7.0))+ pos.x+pos.y + time/3.99999999;
+		float a = mod((v), 0.2);
+		gl_FragColor = vec4(sin(a-pos.y-cos(time))+tx3.x, cos(a+pos.x*pos.y+time)+tx3.y, sin(a+pos.x)+tx3.z, 1.0 );
+	}
+	else if (index == 6)
+	{ // Moving Vertical bars
+		tx3 = floor((tx3 * 5.0) + vec3(0.5)) / 5.0; // posterise image
+		vec2 p = xy.yx;
+		p += time * 0.01;
+
+		vec3 color = vec3(sin(p.x * 11.0), sin(sin(p.x + time * 0.03) * 101.0), sin(p.x*53.0));
+
+
+		gl_FragColor = vec4( color - (0.4*(sin(time)+1.0)*vec3(1.0, 1.0, 1.0)) + tx3.xyz, 1.0 );
+	}
+
+    }
+</script>
+
+<script id="shader-vs" type="v">
+    attribute vec3 aVertexPosition;
+    attribute vec2 aTextureCoord;
+
+    uniform mat4 uMVMatrix;
+    uniform mat4 uPMatrix;
+
+    varying vec2 vTextureCoord;
+
+    void main(void) {
+        gl_Position = uPMatrix * uMVMatrix * vec4(aVertexPosition, 1.0);
+        vTextureCoord = aTextureCoord;
+    }
+</script>
+</head>
+
+<div id="container">
+  <div id="main">
+    <canvas id="webgl-canvas"></canvas>
+    <splash class = "btn" enabled></splash>
+    <div id="no-camera">No Webcam!</div>
+    <div id="close-button">x</div>
+    <button enabled></button>
+    <buttonRight disabled></buttonRight>
+    <buttonLeft disabled></buttonLeft>
+    <buttonUp disabled></buttonUp>
+    <buttonDown disabled></buttonDown>
+    </div>
+  </div>
+</body>
+
+</html>
